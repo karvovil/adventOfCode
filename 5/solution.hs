@@ -1,16 +1,21 @@
 import Data.List
 import Data.Maybe
 
-trimStacks :: [String] -> [String]
-trimStacks []         = []
-trimStacks (s:stacks) = (trimStack (reverse s)) : (trimStacks stacks)
-  
-trimStack :: String -> String
-trimStack (x:xs) = if x /= ' ' then (x:xs) else trimStack xs
-
 parseStacks :: [String] -> [String] -> [String]
-parseStacks (" 1   2   3   4   5   6   7   8   9 ":xs) stacks = stacks
-parseStacks (x:xs) stacks = parseStacks xs (parseStack x stacks)
+parseStacks (" 1   2   3   4   5   6   7   8   9 ":xs) stacks = map reverse (map (filter (/= ' ') ) stacks)
+parseStacks (x:xs)                                     stacks = parseStacks xs (parseStack x stacks) 
+
+parseStack :: String -> [String] -> [String]
+parseStack s stack =
+  [(s !! 1 ):(stack !! 0),
+   (s !! 5 ):(stack !! 1),
+   (s !! 9 ):(stack !! 2),
+   (s !! 13):(stack !! 3),
+   (s !! 17):(stack !! 4),
+   (s !! 21):(stack !! 5),
+   (s !! 25):(stack !! 6),
+   (s !! 29):(stack !! 7),
+   (s !! 33):(stack !! 8)]
 
 parseMoves :: [String] -> [Int] -> [Int]
 parseMoves []                    current = current
@@ -23,23 +28,6 @@ parseMove ('e':' ':x:y:xs) = if y == ' ' then (read [x] :: Int)   : (parseMove x
 parseMove ('m':' ':x:xs) = (read [x] :: Int) : parseMove xs
 parseMove ('o':' ':x:[]) = (read [x] :: Int) : []
 parseMove (x:xs)         = parseMove xs
-
-parseStack :: String -> [String] -> [String]
-parseStack ""           stack = stack
-parseStack (x:y:z:rest) stack
-  | x=='[' && z==']' = y : parseStack rest stack
-  | otherwise        = parseStack (y:z:rest) stack
-
-  --[(s !! 1) :(stack !! 0),
-  --                    (s !! 5) :(stack !! 1),
-  --                    (s !! 9) :(stack !! 2),
-  --                    (s !! 13):(stack !! 3),
-  --                    (s !! 17):(stack !! 4),
-  --                    (s !! 21):(stack !! 5),
-  --                    (s !! 25):(stack !! 6),
-  --                    (s !! 29):(stack !! 7),
-  --                    (s !! 33):(stack !! 8)]
-
 
 remove :: Int -> Int -> [String] -> [String]
 remove n from stacks = (take (from - 1) stacks) ++ [drop n (stacks !! (from - 1))] ++ drop from stacks
@@ -64,7 +52,7 @@ main :: IO ()
 main = do
   filecontent <- readFile "input.txt"
   let input = lines filecontent
-  let stacks =  trimStacks (parseStacks input ["","","","","","","","",""])
+  let stacks = parseStacks input ["","","","","","","","",""]
   let instructions = parseMoves input []
 
   print $ map head (moveMany move instructions stacks)
