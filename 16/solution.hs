@@ -38,14 +38,14 @@ findValve s (v:vs) = if name v == s then v else findValve s vs
 updateLeads :: [(String,Int)] -> String -> [(String,Int)] -> [(String,Int)]
 updateLeads []        nameToUpdate newLeads = []
 updateLeads (l:leads) nameToUpdate newLeads
-  | fst l == nameToUpdate = (plusOne newLeads) ++ (updateLeads leads nameToUpdate newLeads)
+  | fst l == nameToUpdate = (plusOne newLeads l) ++ (updateLeads leads nameToUpdate newLeads)
   | otherwise             = l : (updateLeads leads nameToUpdate newLeads)
-  where plusOne lds = map (\(name, distance) -> (name, distance + 1)) lds
+  where plusOne lds ld = map (\(name, distance) -> (name, distance + (snd ld))) lds
 
 removeDuplicates :: [(String,Int)] -> [(String,Int)]
 removeDuplicates []              = []
 removeDuplicates (l:leads) 
-  | elem (fst l) (map fst leads) = removeDuplicates (filter (\ld -> fst ld /= fst l || snd ld < snd l) (l:leads))
+  | elem (fst l) (map fst leads) = removeDuplicates (filter (\ld -> fst ld /= fst l || snd ld > snd l) (l:leads))
   | otherwise                    = l : (removeDuplicates leads)
 
 updateValves :: [Valve] -> String -> [(String,Int)] -> [Valve]
@@ -87,19 +87,11 @@ main = do
   let trimmedValves = trimGraph 58 allValves
 
   let startState = State (findValve "AA" trimmedValves) 30 0 trimmedValves
-  mapM_ print trimmedValves
-  -- 1614 - 1758
+  --mapM_ print allValves
+--1659
+
   let bestAfter15 = take 10 (reverse $ sort(leafsN 15 startState))
-  print bestAfter15
-  let bestAfter30 = maximum (concatMap (leafsN 0) bestAfter15)
-  print bestAfter30
-{-   let startState1 = State (findValve "MJ" trimmedValves) 20 2
-  let startState2 = State (findValve "AC" trimmedValves) 20 2
-  let startState3 = State (findValve "OI" trimmedValves) 20 2
-  let startState4 = State (findValve "OU" trimmedValves) 20 2
-  let startState5 = State (findValve "KW" trimmedValves) 20 3
-  print $ maximum $ leafsN trimmedValves startState1
-  print $ maximum $ leafsN trimmedValves startState2
-  print $ maximum $ leafsN trimmedValves startState3
-  print $ maximum $ leafsN trimmedValves startState4
-  print $ maximum $ leafsN trimmedValves startState5 -}
+  print $ map totalF bestAfter15
+  let bestAfter30 = take 10 (reverse $ sort (concatMap (leafsN 0) bestAfter15))
+  print $ map totalF bestAfter30
+  print $ map minutesL bestAfter30
