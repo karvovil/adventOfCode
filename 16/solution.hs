@@ -4,16 +4,28 @@ import Data.List
 data Valve = Valve {name :: String, flow :: Int, leads :: [(String,Int)], isOpen :: Bool}
   deriving Show
 
-data State = State {currentV :: Valve, minutesL :: Int, totalF :: Int, allVs :: [Valve]}
+data State = State {currentV :: String, minutesL :: Int, totalF :: Int, allVs :: [Valve]}
   deriving Show
 
 instance Eq State where
   State currentValve1 minutesLeft1 totalFlow1 allValves1 == State currentValve2 minutesLeft2 totalFlow2 allValves2 = minutesLeft1==minutesLeft2 && totalFlow1==totalFlow2
 
+data State2 = State2 {v1 :: String, v2 :: String, mL1 :: Int, mL2 :: Int, tF :: Int, aVs :: [Valve]}
+  deriving Show
+
 instance Ord State where
   State currentValve1 minutesLeft1 totalFlow1 allValves1 <= State currentValve2 minutesLeft2 totalFlow2 allValves2
      | totalFlow1 < totalFlow2     = True
      | totalFlow1 > totalFlow2     = False
+     | otherwise = minutesLeft2 <= minutesLeft1
+
+instance Eq State2 where
+  State2 currentValveA1 currentValveB1 minutesLeft1 ml1 totalFlow1 allValves1 == State2 currentValveA2 currentValveB2 minutesLeft2 ml2 totalFlow2 allValves2 = minutesLeft1==minutesLeft2 && totalFlow1==totalFlow2
+
+instance Ord State2 where
+  State2 currentValveA1 currentValveB1 minutesLeft1 ml1 totalFlow1 allValves1 <= State2 currentValveA2 currentValveB2 minutesLeft2 ml2 totalFlow2 allValves2
+     | 50 * (minutesLeft1 + ml1) + totalFlow1 < 50 * (minutesLeft2 + ml2) + totalFlow2 = True
+     | 50 * (minutesLeft1 + ml1) + totalFlow1 > 50 * (minutesLeft2 + ml2) + totalFlow2 = False
      | otherwise = minutesLeft2 <= minutesLeft1
 
 parseFlows :: [String] -> [Int]
@@ -64,20 +76,28 @@ trimGraph n (v:vs)
 
 nextStates :: State -> [State]
 nextStates (State currentValve minutesLeft totalflow allValves)
-  | isOpen currentValve = map (\l -> State (findValve (fst l) allValves) (minutesLeft-(snd l)) totalflow allValves) (leads currentValve)
-  | not $ isOpen currentValve = (State (open currentValve) (minutesLeft-1) (totalflow + (minutesLeft-1)* flow currentValve) (openValve (name currentValve) allValves)) :
-                       (map (\l -> State (findValve (fst l) allValves) (minutesLeft-(snd l)) totalflow allValves) (leads currentValve))
-  where open (Valve nme flw lds False) = (Valve nme flw lds True) 
-        openValve n ((Valve nme flw lds isOpn):vs) = if n == nme then (Valve nme flw lds True) : vs else (Valve nme flw lds isOpn) : (openValve n vs)
+  | isOpen $ findValve currentValve allValves       = map (\l -> State (fst l) (minutesLeft-(snd l)) totalflow allValves) (leads $ findValve currentValve allValves)
+  | not $ isOpen $ findValve currentValve allValves = (State currentValve (minutesLeft-1) (totalflow + (minutesLeft-1)* flow (findValve currentValve allValves)) (openValve currentValve allValves))
+                                                   : (map (\l -> State (fst l) (minutesLeft-(snd l)) totalflow allValves) (leads $ findValve currentValve allValves))
+        where openValve n ((Valve nme flw lds isOpn):vs) = if n == nme then (Valve nme flw lds True) : vs else (Valve nme flw lds isOpn) : (openValve n vs)
 
 leafsN :: Int -> State -> [State]
 leafsN n currentState 
-  | (filter (>n) (map minutesL (nextStates currentState))) == [] = [currentState]
---  | minutesL currentState <= n = [currentState]
+  | (filter (>=n) (map minutesL (nextStates currentState))) == [] = [currentState]
   | n /= 0                     = concatMap (leafsN n) (nextStates currentState)
-  | otherwise                  = concatMap (leafsN n) (filter (\ s -> minutesL s > n) (nextStates currentState))
+  | otherwise                  = concatMap (leafsN n) (filter (\ s -> minutesL s >= n) (nextStates currentState))
 
+nextStates2 :: State2 -> [State2]
+nextStates2 (State2 currentValve currentValve2 minutesLeft minutesLeft2 totalflow allValves)
+  | minutesLeft >= minutesLeft2 = map (toState2 currentValve2 minutesLeft2) (nextStates (State currentValve  minutesLeft  totalflow allValves))
+  | otherwise                   = map (toState2 currentValve  minutesLeft ) (nextStates (State currentValve2 minutesLeft2 totalflow allValves))
+    where toState2 cv2 ml2 (State currentValve minutesLeft totalflow allValves) = State2 currentValve cv2 minutesLeft ml2 totalflow allValves
 
+leafsN2 :: Int -> State2 -> [State2]
+leafsN2 n currentState 
+  | (filter (\s -> ((mL1 s) >= n) && ((mL2 s) >= n) ) (nextStates2 currentState)) == [] = [currentState]
+  | n /= 0                     = concatMap (leafsN2 n) (nextStates2 currentState)
+  | otherwise                  = concatMap (leafsN2 n) (filter (\ s -> (mL1 s) >= n && (mL2 s) >= n) (nextStates2 currentState))
 
 main :: IO ()
 main = do
@@ -86,12 +106,11 @@ main = do
   let allValves = zipWith4 Valve (parseNames input) (parseFlows input) (map parseLeads input) [False | i <- [1..58]]
   let trimmedValves = trimGraph 58 allValves
 
-  let startState = State (findValve "AA" trimmedValves) 30 0 trimmedValves
-  --mapM_ print allValves
---1659
-
+  let startState = State "AA" 30 0 trimmedValves
   let bestAfter15 = take 10 (reverse $ sort(leafsN 15 startState))
-  print $ map totalF bestAfter15
-  let bestAfter30 = take 10 (reverse $ sort (concatMap (leafsN 0) bestAfter15))
-  print $ map totalF bestAfter30
-  print $ map minutesL bestAfter30
+  print $ totalF $ maximum $ reverse $ sort (concatMap (leafsN 0) bestAfter15)
+
+  let startState2 = State2 "AA" "AA" 26 26 0 trimmedValves
+  let bestAfter10 = take 100 (reverse $ sort(leafsN2 16 startState2))
+  let bestAfter18 = take 100 (reverse $ sort(concatMap (leafsN2 8) bestAfter10 ))
+  print $ maximum (map tF (concatMap (leafsN2 0) bestAfter18))
