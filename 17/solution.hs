@@ -39,11 +39,10 @@ moveManyRocks start end (State n height i cs rs)
   | mod start 5 == 3 = moveManyRocks (start+1) end ( moveToRest 'X' (State n height i cs rs) (spawn "long"   height) )
   | mod start 5 == 4 = moveManyRocks (start+1) end ( moveToRest 'X' (State n height i cs rs) (spawn "square" height) )
 
-findShit :: [State] -> [State]
-findShit []                         = []
-findShit ((State n h i cs rs):rest) = if n<1000 then findShit rest else case result of
-  Nothing     -> findShit rest
-  Just result -> (State n h i cs rs) : result : []
+findRepeatingStates :: [State] -> (State,State)
+findRepeatingStates ((State n h i cs rs):rest) = case result of
+  Nothing     -> findRepeatingStates rest
+  Just result -> ( (State n h i cs rs) , result )
   where result = find (\s -> (mod i 10091) == (mod $ moves s) 10091) (take 50 (drop 1700 rest))
 
 main :: IO ()
@@ -51,18 +50,14 @@ main = do
   jet <- readFile "input.txt"
 
   let startFloor = [(-3,0),(-2,0),(-1,0),(0,0),(1,0),(2,0),(3,0)]
-  let states3k = [ moveManyRocks 0 i (State 0 0 0 jet startFloor) | i <- [0..3500] ]
+  print $ height $ moveManyRocks 0 2022 (State 0 0 0 jet startFloor)
 
-  let smallpart = height $ moveManyRocks 0 1440 (State 0 0 0 jet startFloor)
-  print smallpart
-  let bigpart   = ((1000000000000 - 200) `div`  1720) * 2626 -- = 1526744183848   jakojäännös: 1240
-  print $ bigpart + smallpart
+  let states3500 = [ moveManyRocks 0 i (State 0 0 0 jet startFloor) | i <- [200..3500] ]
 
-  print $ moveManyRocks 0  200 (State 0 0 0 jet startFloor)
-  print $ moveManyRocks 0 1920 (State 0 0 0 jet startFloor)
-  print $ moveManyRocks 0 3640 (State 0 0 0 jet startFloor)
-  print $ moveManyRocks 0 5360 (State 0 0 0 jet startFloor)
+  let ss = findRepeatingStates states3500
+  let hIncrease = (height $ snd ss) - (height $ fst ss)
+  let rIncrease = (rockN $ snd ss) - (rockN $ fst ss)
 
-  --print $ findShit states3k == [Rocks: 1000  Height: 1519  Moves: 5907   ,Rocks: 2720  Height: 4145  Moves: 15998   ]
-
-  -- 1 526 744 186 232    TOO High
+  let bigPart   = ((1000000000000 - (rockN $ fst ss)) `div`  rIncrease) * hIncrease
+  let smallPart = height $ moveManyRocks 0 (mod 1000000000000 rIncrease) (State 0 0 0 jet startFloor)
+  print $ bigPart + smallPart
