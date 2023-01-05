@@ -12,48 +12,74 @@ parseBP' xs is
   | otherwise             = parseBP' (tail xs) is
 
 data BPrint = BPrint {bPrintId :: Int, oreRore :: Int, clayRore :: Int, bsRore :: Int, bsRclay :: Int, geoRore :: Int, geoRbs :: Int}
-  deriving Show
+  deriving (Show, Eq)
 
 data Resources = Resources {ores :: Int, clays :: Int, bsidians :: Int, geodes :: Int}
-  deriving Show
+  deriving (Show, Eq)
 
 data Robots = Robots {oreRobots :: Int, clayRobots :: Int,bsRobots :: Int, geoRobots :: Int}
-  deriving Show
+  deriving (Show, Eq)
 
-data State = State {minute :: Int, blueprint :: BPrint, resources :: Resources, robots :: Robots}
-  deriving Show
+data State = State {mL :: Int, blueprint :: BPrint, resources :: Resources, robots :: Robots}
+  deriving Eq
   
-instance Eq State where
-  State m1 b1 re1 ro1 == State m2 b2 re2 ro2 = geodes re1 == geodes re2 && geoRobots ro1 == geoRobots ro2
+instance Show State where
+  show s = " minute " ++ (show $ 24 - (mL s)) ++ " " ++ (show $ robots s) ++ (show $ resources s) ++ "\n" 
 
 instance Ord State where
-  State m1 b1 re1 ro1 <= State m2 b2 re2 ro2
-     | (geodes re1) + (m1 * geoRobots ro1) < (geodes re2) + (m2 * geoRobots ro2) = True
-     | (geodes re1) + (m1 * geoRobots ro1) > (geodes re2) + (m2 * geoRobots ro2) = False
-     | otherwise = if bsidians re1 /=0 && bsidians re2 /= 0 
-                    then (bsidians re1) + (m1 * bsRobots ro1) < (bsidians re2) + (m2 * bsRobots ro2)
-                      else (clays re1) + (m1 * clayRobots ro1) <= (clays re2) + (m2 * clayRobots ro2)
+  State mL1 b1 re1 ro1 <= State mL2 b2 re2 ro2
+     | (geodes   re1) + (mL1 * geoRobots  ro1) /= (geodes   re2) + (mL2 * geoRobots  ro2)
+     = (geodes   re1) + (mL1 * geoRobots  ro1) <  (geodes   re2) + (mL2 * geoRobots  ro2) 
+     | (bsidians re1) + (mL1 * bsRobots   ro1) /= (bsidians re2) + (mL2 * bsRobots   ro2)
+     = (bsidians re1) + (mL1 * bsRobots   ro1) <  (bsidians re2) + (mL2 * bsRobots   ro2) 
+     | (clays    re1) + (mL1 * clayRobots ro1) /= (clays    re2) + (mL2 * clayRobots ro2)
+     = (clays    re1) + (mL1 * clayRobots ro1) <= (clays    re2) + (mL2 * clayRobots ro2) 
+     | otherwise
+     = (ores     re1) + (mL1 * oreRobots  ro1) <  (ores     re2) + (mL2 * oreRobots  ro2)
 
 nextStates :: State -> [State]
-nextStates (State m (BPrint id oro cro bro brc gro grb) (Resources o c b g) (Robots oR cR bR gR)) = 
-  filter (\s -> (ores $ resources s) >= 0 && (clays $ resources s) >= 0 && (bsidians $ resources s) >= 0 ) (
-  (State (m+1) blueprint (Resources (o+oR    ) (c+cR    ) (b+bR    ) (g+gR)) (Robots  oR     cR     bR     gR   )) :
-  (State (m+1) blueprint (Resources (o+oR-oro) (c+cR    ) (b+bR    ) (g+gR)) (Robots (oR+1)  cR     bR     gR   )) :
-  (State (m+1) blueprint (Resources (o+oR-cro) (c+cR    ) (b+bR    ) (g+gR)) (Robots  oR    (cR+1)  bR     gR   )) :
-  (State (m+1) blueprint (Resources (o+oR-bro) (c+cR-brc) (b+bR    ) (g+gR)) (Robots  oR     cR    (bR+1)  gR   )) :
-  (State (m+1) blueprint (Resources (o+oR-gro) (c+cR    ) (b+bR-grb) (g+gR)) (Robots  oR     cR     bR    (gR+1))) : [] )
-  where blueprint = BPrint id oro cro bro brc gro grb
+nextStates (State mL (BPrint id oro cro bro brc gro grb) (Resources o c b g) (Robots oR cR bR gR)) =
+  if b >= grb && o >= gro then [buildGbot]
+   else filter (\s -> (ores $ resources s) - oR >= 0 && (clays $ resources s) - cR >= 0 && (bsidians $ resources s) - bR >= 0) (
+    buildObot : buildNada 
+    if b+bR*mL < grb*mL then buildCbot : if c+cR*mL < brc*mL then (buildBbot) : else
+    if c+cR*mL < brc*mL then (buildBbot) : [] else : [] )
+  where bp = BPrint id oro cro bro brc gro grb
+        buildObot = State (mL-1) bp (Resources (o+oR-oro) (c+cR    ) (b+bR    ) (g+gR)) (Robots (oR+1)  cR     bR     gR   )
+        buildCbot = State (mL-1) bp (Resources (o+oR-cro) (c+cR    ) (b+bR    ) (g+gR)) (Robots  oR    (cR+1)  bR     gR   )
+        buildBbot = State (mL-1) bp (Resources (o+oR-bro) (c+cR-brc) (b+bR    ) (g+gR)) (Robots  oR     cR    (bR+1)  gR   )
+        buildGbot = State (mL-1) bp (Resources (o+oR-gro) (c+cR    ) (b+bR-grb) (g+gR)) (Robots  oR     cR     bR    (gR+1))
+        buildNada = State (mL-1) bp (Resources (o+oR    ) (c+cR    ) (b+bR    ) (g+gR)) (Robots  oR     cR     bR     gR   )
 
-solve1 :: Int -> [State] -> [State]
-solve1 endMinute startStates = if (minute $ head startStates) == endMinute
-                      then {- maximum $ map (geodes . resources) -} startStates
-                        else solve1 endMinute $ take 50000 $ reverse $ sort $ concatMap nextStates startStates
+nextS :: State -> State
+nextS (State  mL    bp (Resources  o      c      b      g    ) (Robots oR cR bR gR)) =
+       State (mL-1) bp (Resources (o+oR) (c+cR) (b+bR) (g+gR)) (Robots oR cR bR gR)
+
+solve1 ::  Int -> [State] -> [State]
+--solve1 stopAt []          = []
+solve1 stopAt startStates = --if (concatMap nextStates startStates) == [] then solve1 stopAt [nextS $ head startStates] else
+                             if (mL $ head startStates) == stopAt then startStates
+                              else solve1 stopAt $ concatMap nextStates startStates
 
 main :: IO ()
 main = do
   filecontent <- readFile "input.txt"
   let blueprints = map parseBP (lines filecontent)
-  let startStates = map (\b -> (State 0 b (Resources 0 0 0 0) (Robots 1 0 0 0))) blueprints
-  let qualityLevels = [ (bPrintId $ blueprint s) * (geodes $ resources $ maximum $ solve1 24 [s]) | s <- startStates ]
+  let startStates = map (\b -> (State 24 b (Resources 0 0 0 0) (Robots 1 0 0 0))) blueprints
+
+  let statesAfterStep1 = map (\s -> take 100 $ reverse $ sort $ solve1 10 [s]) startStates
+  print $ map (take 9) statesAfterStep1
+
+  let statesAfterStep2 = map (\s -> take 100 $ reverse $ sort $ solve1 4 s   ) statesAfterStep1
+  print $ map (take 9) statesAfterStep2
+
+  let statesAfterStep3 = map (\s ->           reverse $ sort $ solve1 0 s   ) statesAfterStep2
+  print $ map (take 9) statesAfterStep3
+
+  let maxGeodes = [maximum $ map (geodes . resources) s | s <- statesAfterStep3]
+  print maxGeodes
+
+  let qualityLevels = zipWith (*) maxGeodes (map bPrintId blueprints)
+  print qualityLevels
   print $ sum qualityLevels
 --507 - 2725
