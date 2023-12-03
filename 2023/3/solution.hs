@@ -2,7 +2,7 @@ import Data.List
 import Data.Char
 
 symbolIn :: (Int, Int) -> [String] -> Bool
-symbolIn (x, y) schematic = elem ((schematic !! y) !! x) ['-','+','*','$','#','%','@','='] 
+symbolIn (x, y) schematic = elem ((schematic !! y) !! x) ['-','+','*','$','#','%','@','=','/','&'] 
 
 hasAdjacentSymbol :: (Int, Int) -> [String] -> Bool
 hasAdjacentSymbol (x,y) schematic = or $ map (\c -> symbolIn c schematic ) adjacent
@@ -33,8 +33,8 @@ numCoords' schematic (x, y) coords
 isPartNumber :: [String] -> [(Int,Int)] -> Bool
 isPartNumber schematic coords = any (\c -> hasAdjacentSymbol c schematic) coords 
 
-{- parseNum :: [String] -> [(Int,Int)] -> Int
-parseNum schematic coords =  -}
+parseNum :: [String] -> [(Int,Int)] -> Int
+parseNum schematic coords = read (map (\(x,y) -> ((schematic !! y) !! x)) coords) :: Int
 
 main :: IO ()
 main = do
@@ -42,5 +42,6 @@ main = do
   let allDigits = numCoords schematic
   let filteredDigits = filter (\coords -> isPartNumber schematic coords ) allDigits 
 
-  print $ length allDigits
-  print $ length filteredDigits
+  --print $ map (\coords -> parseNum schematic coords ) filteredDigits
+  print $ sum $ map (\coords -> parseNum schematic coords ) filteredDigits
+  -- 539713
