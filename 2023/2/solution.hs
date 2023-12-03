@@ -1,23 +1,13 @@
 import Data.List
 import Data.Char
 
-greensMax cs = greensMax' cs 0  
-greensMax' :: String -> Int -> Int
-greensMax' [] rslt = rslt
-greensMax' (c1:c2:' ':'g':'r':'e':'e':'n':cs) rslt = greensMax' cs (max (read (c1:c2:[]) :: Int) rslt)
-greensMax' (c:cs) rslt = greensMax' cs rslt
-
-redsMax cs = redsMax' cs 0  
-redsMax' :: String -> Int -> Int
-redsMax' [] rslt = rslt
-redsMax' (c1:c2:' ':'r':'e':'d':cs) rslt = redsMax' cs (max (read (c1:c2:[]) :: Int) rslt)
-redsMax' (c:cs) rslt = redsMax' cs rslt
-
-bluesMax cs = bluesMax' cs 0  
-bluesMax' :: String -> Int -> Int
-bluesMax' [] rslt = rslt
-bluesMax' (c1:c2:' ':'b':'l':'u':'e':cs) rslt = bluesMax' cs (max (read (c1:c2:[]) :: Int) rslt)
-bluesMax' (c:cs) rslt = bluesMax' cs rslt
+colorMax cs = colorMax' cs (0,0,0)
+colorMax' :: String -> (Int,Int,Int) -> (Int,Int,Int)
+colorMax' [] rslt = rslt
+colorMax' (c1:c2:' ':'r':'e':'d':cs) (r,g,b)         = colorMax' cs ((max (read (c1:c2:[]) :: Int) r), g, b)
+colorMax' (c1:c2:' ':'g':'r':'e':'e':'n':cs) (r,g,b) = colorMax' cs (r, (max (read (c1:c2:[]) :: Int) g), b)
+colorMax' (c1:c2:' ':'b':'l':'u':'e':cs) (r,g,b)     = colorMax' cs (r, g, (max (read (c1:c2:[]) :: Int) b))
+colorMax' (c:cs) rslt                                = colorMax' cs rslt
 
 isLegal :: String -> Bool
 isLegal [] = True 
@@ -38,5 +28,6 @@ main = do
   let legalLines =  filter isLegal input
   print $ sum $ gameId <$> legalLines
 
-  let powerSum = sum $ map (\line -> (redsMax line) * (greensMax line) * (bluesMax line)) input 
-  print powerSum
+
+  let colorMaximums = map colorMax input
+  print $ sum $ (\(r,g,b) -> r*g*b) <$> colorMaximums
