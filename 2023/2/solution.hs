@@ -17,9 +17,7 @@ isLegal (c1:c2:' ':'b':'l':'u':'e':cs) = if (read (c1:c2:[]) :: Int) > 14 then F
 isLegal (c:cs) = isLegal cs
 
 gameId :: String -> Int
-gameId ('G':'a':'m':'e':' ':c:':':cs)         = read (c:[]) :: Int  
-gameId ('G':'a':'m':'e':' ':c1:c2:':':cs)     = read (c1:c2:[]) :: Int
-gameId ('G':'a':'m':'e':' ':c1:c2:c3:':':cs)  = read (c1:c2:c3:[]) :: Int
+gameId line = read (takeWhile isDigit (dropWhile (not . isDigit) line)) :: Int
 
 main :: IO ()
 main = do
@@ -27,7 +25,6 @@ main = do
 
   let legalLines =  filter isLegal input
   print $ sum $ gameId <$> legalLines
-
 
   let colorMaximums = map colorMax input
   print $ sum $ (\(r,g,b) -> r*g*b) <$> colorMaximums
