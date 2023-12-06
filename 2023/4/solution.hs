@@ -14,10 +14,12 @@ parseCard' (_:cs)             rslt = parseCard' cs rslt
 main :: IO ()
 main = do
   cards <- lines <$> readFile "input.txt"
-  print cards
 
-  let winNums = map parseCard cards
-  let myNums = map parseCard (map (\line -> dropWhile (\c -> c /= '|') line ++ [' '] ) cards)
+  let winNums = map (\str ->  take 10 (parseCard str)) cards
+  let myNums = map parseCard (map (\line -> dropWhile (/= '|') line ++ [' '] ) cards)
 
-  print winNums
-  print myNums
+  let intersection = zipWith intersect myNums winNums
+  let wins = filter (>0) (map length intersection)
+  let points = map (\i -> 2^(i-1)) wins
+  print $ sum points
+  --26218
